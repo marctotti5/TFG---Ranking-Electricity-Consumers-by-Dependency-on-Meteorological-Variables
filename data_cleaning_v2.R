@@ -1,20 +1,13 @@
 # Cargamos librerías
-#library(data.table)
-#library(dtplyr)
 library(dplyr, warn.conflicts = FALSE)
-#library(doSNOW) 
-#library(foreach)
-#library(parallel)
-#library(doParallel)
-#library(sparklyr)
 #library(tidyverse)
 library(lubridate)
 library(readr)
 library(tidyr)
-#library(mice)
-#library(xts)
 
 # 0. LECTURA Y LIMPIEZA DE DATOS
+
+### DESCARGA DE ARCHIVOS EN EL SERVIDOR DE R STUDIO PRO
 #library(googledrive)
 #ls_tibble <- googledrive::drive_ls("TFG/halfhourly_raw")
 #for (file_id in ls_tibble$id) {
@@ -30,21 +23,18 @@ carpeta_salida <- "./Datos/archive/hourly_dataset_clean"
 
 ##  Obtener la lista de archivos en la carpeta de entrada
 archivos <- list.files(carpeta_entrada, full.names = TRUE)
-#archivos <- archivos[1:4]
-#archivo <- archivos
+
 
 ## Obtener los datos meteorológicos, de households y demás
 informations_households <- read_csv("./Datos/archive/informations_households.csv")
 uk_bank_holidays <- read_csv("./Datos/archive/uk_bank_holidays.csv") %>% rename(date = `Bank holidays`)
-#weather_hourly <- read_csv("./Datos/archive/weather_hourly_darksky.csv")
-#weather_hourly$time <- as.POSIXct(weather_hourly$time, tz = "Europe/London")
 
-# Obtenemos los datos meteorológicos (USAMOS OPENMETEO Q NO TIENE NA'S Y DA + INFO):
-## - AQUI: nose pq hay diferente numero de filas, ver mñn
+
+# Obtenemos los datos meteorológicos:
 weather_hourly <- read_csv("C:/Users/marct/Documents/UNI_ESTADISTICA/4o/SEGUNDO CUATRIMESTRE/TFG/tfg_marc/TFG---Marc-Pastor/Datos/archive/open-meteo-51.49N0.16W23m_lastupdated.csv")
 weather_hourly$time <- as.POSIXct(weather_hourly$time, tz = "Europe/London")
 
-#encontrar_tstp_faltantes_hourly(weather_hourly$time, min(prueba$tstp), min(prueba$tstp)) # NO HAY FECHAS FALTANTES
+
 weather_hourly[!complete.cases(weather_hourly), ]
 weather_hourly <- weather_hourly %>% janitor::clean_names()
 weather_hourly <- weather_hourly %>% select(-c("wind_speed_100m_km_h", "wind_direction_100m", 
@@ -73,6 +63,12 @@ encontrar_tstp_faltantes <- function(tstp_reales, min_tstp, max_tstp) {
   horas_esperadas[horas_esperadas %notin% tstp_reales]
 }
 
+#encontrar_tstp_faltantes_hourly(weather_hourly$time, min(prueba$tstp), min(prueba$tstp)) # NO HAY FECHAS FALTANTES EN DATOS METEOROLÓGICOS
+
+
+
+
+
 # Definir una función para imputar la media de cada NA como la media del mes en cuestión para ese ID concreto
 imputar_grupo <- function(grupo) {
   lc_lid <- grupo$lc_lid
@@ -91,6 +87,9 @@ imputar_grupo <- function(grupo) {
   return(datos_grupo)
 }
 
+
+
+
 ## Volvemos a comprobar que no falten tstps y que no haya NA's
 encontrar_tstp_faltantes_hourly <- function(tstp_reales, min_tstp, max_tstp) {
   # Identificar las fechas de cambio de hora por horario de verano o invierno
@@ -108,6 +107,7 @@ encontrar_tstp_faltantes_hourly <- function(tstp_reales, min_tstp, max_tstp) {
   horas_esperadas[horas_esperadas %notin% tstp_reales]
 }
 
+
 tstp_faltantes <- function(df){
   # Función para encontrar timestamps faltantes por cada id
   df %>%
@@ -117,6 +117,8 @@ tstp_faltantes <- function(df){
               tstp_faltantes = list(encontrar_tstp_faltantes(tstp, min_tstp, max_tstp))) %>%
     mutate(num_tstps_faltantes = unlist(lapply(tstp_faltantes, length)))
 }
+
+
 tstp_faltantes_hourly <- function(df){
   # Función para encontrar timestamps faltantes por cada id
   df %>%
@@ -133,19 +135,12 @@ names(lista_pct_na) <- archivos
 
 
 
-
-
-#archivos <- archivos[1:3]
-
-## Leemos solamente el primer archivo para probar y luego generalizar
+## EJECUCIÓN DE LA LIMPIEZA
 for (archivo in archivos){
   half_hourly_dataset <- read_csv(archivo, col_types = cols(tstp = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
                                                             `energy(kWh/hh)` = col_number(),
                                                             LCLid = col_character()))
   # -------- 0.1 ARCHIVOS HOURLY CLEAN --------------
-  
-  ## Miramos la estructura del dataframe
-  # skimr::skim(half_hourly_dataset)
   
   ## Extraemos el % de NA's de cada bloque
   na_pct <- sum(!complete.cases(half_hourly_dataset))/nrow(half_hourly_dataset) * 100
@@ -176,7 +171,7 @@ for (archivo in archivos){
   tstp_faltantes_por_id <- tstp_faltantes(half_hourly_dataset)
   
   # vemos que cada ID tiene diferentes fechas faltantes, utilizaremos imputación para eliminar esas fechas faltantes
-  #print(tstp_faltantes_por_id) 
+  # print(tstp_faltantes_por_id) 
   
   
   # Crear un data frame con las filas faltantes para cada ID
@@ -268,34 +263,6 @@ for (archivo in archivos){
   nombre_archivo_salida <- paste("hourly_clean", substr(archivo, 67, nchar(archivo)), sep = "_")
   write_csv(datos_hourly, paste(carpeta_salida, nombre_archivo_salida, sep = "/"))
   rm(datos_hourly)
-  
-  # -------- 0.2 ARCHIVOS HOURLY POR ESTACIONES --------------
-  gc()
-  ## Invierno
-  #datos_winter <- datos_hourly %>% filter(season == "Winter")
-  #nombre_archivo_salida_winter <- paste("hourly_clean_winter", substr(archivo, 59, nchar(archivo)), sep = "_")
-  #carpeta_salida_winter <- paste0(carpeta_salida, "/winter")
-  #write_csv(datos_winter, paste(carpeta_salida_winter, nombre_archivo_salida_winter, sep = "/"))
-  #gc()
-  ## Primavera
-  #datos_spring <- datos_hourly %>% filter(season == "Spring")
-  #nombre_archivo_salida_spring <- paste("hourly_clean_spring", substr(archivo, 59, nchar(archivo)), sep = "_")
-  #carpeta_salida_spring <- paste0(carpeta_salida, "/spring")
-  #write_csv(datos_spring, paste(carpeta_salida_spring, nombre_archivo_salida_spring, sep = "/"))
-  #gc()
-  ## Verano
-  #datos_summer <- datos_hourly %>% filter(season == "Summer")
-  #nombre_archivo_salida_summer <- paste("hourly_clean_summer", substr(archivo, 59, nchar(archivo)), sep = "_")
-  #carpeta_salida_summer <- paste0(carpeta_salida, "/summer")
-  #write_csv(datos_summer, paste(carpeta_salida_summer, nombre_archivo_salida_summer, sep = "/"))
-  #gc()
-  ## Otoño
-  #datos_autumn <- datos_hourly %>% filter(season == "Autumn")
-  #nombre_archivo_salida_autumn <- paste("hourly_clean_autumn", substr(archivo, 59, nchar(archivo)), sep = "_")
-  #carpeta_salida_autumn <- paste0(carpeta_salida, "/autumn")
-  #write_csv(datos_autumn, paste(carpeta_salida_autumn, nombre_archivo_salida_autumn, sep = "/"))
-  #gc()
-  
   
 }
 
