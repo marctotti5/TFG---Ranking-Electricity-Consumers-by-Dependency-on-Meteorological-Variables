@@ -345,7 +345,7 @@ GCC(x = datos_hourly_hogar_preprocessed_seasonaldiff$energy_kwh_hh,
     k = 24, method = "spearman", use = "pairwise.complete.obs")
 
 ## --------------------------------------------------------------------------------------------------
-## -------------------------------- CLUSTERING v2 (distancia de gower) ------------------------------
+## ------------------------------------------ CLUSTERING  -------------------------------------------
 ## --------------------------------------------------------------------------------------------------
 {
     # AQUÍ ABAJO
@@ -1269,11 +1269,7 @@ calcular_rankings <- function(k, variable_x, variable_y, archivos, by_seasons, n
 carpeta_entrada <- "./Datos/archive/hourly_dataset_clean_ISHOME_stationary_v2"
 # Obtener la lista de archivos en la carpeta de entrada
 archivos <- list.files(carpeta_entrada, full. = TRUE)
-#archivos <- archivos[1] MAC001715
-#archivos <- archivos[1:2]  # Solo para propósitos de demostración, puedes eliminar esta línea para procesar todos los archivos
-#archivos <- "./Datos/archive/hourly_dataset_clean_ISHOME/hourly_clean_def_block_6.csv"
 
-# FALTA SACAR LOS BOXPLOTS POR CLUSTERS Q TENIAN EL TITULO MAL PUESTO
 
 resultados_temperature <- calcular_rankings(k = 24, variable_x = "energy_kwh_hh", 
                                             variable_y = "temperature_2m_c", 
